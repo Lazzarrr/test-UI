@@ -1,2 +1,0 @@
-print("Excange")
-print("Hello")
