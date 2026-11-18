@@ -1,0 +1,409 @@
+services:
+  - type: web
+    name: moderationbezvesti
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /login
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moderationbezvesti-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: BOOTSTRAP_ADMIN
+        sync: false
+      - key: BOOTSTRAP_PASSWORD
+        sync: false
+      - key: RATELIMIT_STORAGE_URI
+        sync: false
+databases:
+  - name: moderationbezvesti-db
+    plan: basic-256mb
+
+Flask>=3.1,<4
+Flask-SQLAlchemy>=3.1,<4
+Flask-WTF>=1.2,<2
+Flask-Limiter>=3.8,<5
+psycopg[binary]>=3.2,<4
+gunicorn>=23,<24
+
+# Moderation Bezvesti — серверный проект
+
+Проект Flask + PostgreSQL для закрытого портала модерации.
+
+## Уже реализовано
+- Вход только по выданным учётным данным.
+- Роли: Модератор, Старший модератор, Глава модерации.
+- Создание аккаунтов Главой и Старшим модератором.
+- Ручное задание или автоматическая генерация логина и пароля.
+- Хеширование паролей; временный пароль требует смены при первом входе.
+- Сброс пароля Главой.
+- Дата вступления и назначение ролей изменяются только Главой.
+- Устав, отчёты о наказаниях, журнал административных действий.
+- CSRF-защита форм, ограничение частоты попыток входа, защитные HTTP-заголовки.
+
+## Важно перед настоящим публичным запуском
+Это подготовленный стартовый проект, но не сертифицированный продукт и не прошедший независимый аудит безопасности. Нужны проверка, тестирование и контроль взрослого администратора. Не заносите реальные данные участников до завершения проверки.
+
+## Переменные окружения
+- `DATABASE_URL` — строка подключения PostgreSQL.
+- `SECRET_KEY` — длинный случайный секрет с панели хостинга.
+- `BOOTSTRAP_ADMIN` — имя первого аккаунта Главы.
+- `BOOTSTRAP_PASSWORD` — первоначальный пароль Главы (сразу будет требоваться смена).
+- `COOKIE_SECURE=1` — только при HTTPS.
+- `RATELIMIT_STORAGE_URI` — постоянное хранилище лимитов, например Redis URL; memory:// годится только для локального теста.
+
+## Render
+Файл `render.yaml` задаёт веб-сервис и PostgreSQL. Для реального развёртывания выберите оплачиваемые тарифы с постоянной базой данных, проверьте доступность планов и итоговую стоимость в панели Render. Не используйте бесплатную БД для постоянных данных: бесплатный PostgreSQL Render ограничен сроком и не имеет резервных копий.
+
+После создания сервиса:
+1. Установите `BOOTSTRAP_ADMIN` и `BOOTSTRAP_PASSWORD` как секретные переменные.
+2. Настройте `RATELIMIT_STORAGE_URI` на Redis/совместимое хранилище или выберите иной устойчивый backend для лимитов.
+3. Проверьте, что `DATABASE_URL` указывает на PostgreSQL.
+4. Убедитесь, что HTTPS включён и `COOKIE_SECURE=1`.
+5. Проведите тесты ролей, CSRF, сброса пароля и восстановления базы.
+
+## Локальный запуск
+`pip install -r requirements.txt`
+`python app.py`
+Локально по умолчанию используется SQLite для разработки. Для проверки production-поведения задайте `DATABASE_URL` на тестовую PostgreSQL.
+
+web: gunicorn app:app
+
+.env
+.venv/
+__pycache__/
+*.pyc
+*.db
+instance/
+
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#edf2ff;font:15px/1.55 system-ui,Arial,sans-serif}a{color:#b6c7ff;text-decoration:none}header{height:72px;position:sticky;top:0;z-index:4;background:#0e172be8;border-bottom:1px solid #293653;display:flex;align-items:center;padding:0 max(18px,calc((100% - 1100px)/2));gap:18px}.logo{font-weight:900;font-size:19px}.logo small{display:block;font-size:9px;letter-spacing:2px;color:#9eacc9}.who{margin-left:auto;color:#aebbd6;font-size:12px}.hamb{background:#19243d;color:white;border:1px solid #344568;border-radius:10px;padding:8px 12px;font-size:19px}main{max-width:1050px;margin:38px auto;padding:0 20px 70px}.panel{background:#131d33;border:1px solid #293653;border-radius:18px;padding:24px;margin:18px 0}.login{max-width:440px;margin:10vh auto;padding:34px}.narrow{max-width:520px;margin:10vh auto}.eyebrow{font-size:11px;letter-spacing:2px;color:#a9bdff;font-weight:800}h1{font-size:clamp(28px,5vw,42px);line-height:1.12;margin:10px 0 18px}h2{font-size:20px;margin:0 0 12px}.muted,small{color:#9eacc9}.hero{padding:48px;border:1px solid #344568;border-radius:24px;background:linear-gradient(130deg,#1c2e52,#121b30);min-height:280px;display:flex;flex-direction:column;justify-content:end}.hero h1{font-size:clamp(34px,6vw,54px);max-width:720px}.hero p{color:#aebbd6;max-width:580px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-top:18px}.stats .panel{margin:0}.stats b{display:block;font-size:26px}.stats span{color:#9eacc9;font-size:12px}label{display:block;margin:13px 0 6px;color:#cbd6ee;font-size:13px}input,textarea,select{width:100%;padding:12px;background:#0b1428;border:1px solid #344568;border-radius:10px;color:#edf2ff;font:inherit}textarea{resize:vertical}button{background:#9bb2ff;color:#10182c;border:0;border-radius:10px;padding:11px 17px;font-weight:800;cursor:pointer;margin-top:16px}button.secondary{background:#2b3b5d;color:#eaf0ff}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}td,th{text-align:left;padding:12px;border-bottom:1px solid #293653;font-size:13px}th{color:#9eacc9}.flash,.notice{padding:14px;border-radius:12px;background:#213657;border:1px solid #3b5682;margin-bottom:15px}.notice code{color:#dce5ff}.report{padding:12px 0;border-bottom:1px solid #293653}.prose{white-space:pre-wrap;line-height:2}.shade,aside{display:none}details form{min-width:190px}summary{cursor:pointer;color:#b6c7ff}@media(max-width:700px){main{margin:24px auto}.hero{padding:26px;min-height:250px}.login{margin:8vh auto;padding:24px}.row{grid-template-columns:1fr}.who{max-width:135px;text-align:right}aside{display:block;position:fixed;z-index:10;left:0;top:0;bottom:0;width:270px;background:#101a30;padding:26px;transform:translateX(-110%);transition:.2s}aside a{display:block;padding:13px;border-radius:9px}aside a:hover{background:#263858}.side-title{font-weight:800;margin-bottom:20px}.shade{display:block;position:fixed;inset:0;background:#0009;z-index:9;opacity:0;pointer-events:none}.menu-open aside{transform:translateX(0)}.menu-open .shade{opacity:1;pointer-events:auto}}
+{% extends "base.html" %}{% block content %}<section class="panel"><h1>{{message}}</h1><a href="/">На главную</a></section>{% endblock %}
+{% extends "base.html" %}{% block content %}<section class="login panel"><div class="eyebrow">ЗАКРЫТЫЙ ПОРТАЛ</div><h1>Модерация сервера<br>«Пропавших без вести»</h1><p class="muted">Введите выданные вам данные для входа.</p><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><label>Логин</label><input name="username" required autocomplete="username"><label>Пароль</label><input name="password" type="password" required autocomplete="current-password"><button>Войти</button></form></section>{% endblock %}
+{% extends "base.html" %}{% block content %}<div class="eyebrow">АДМИНИСТРИРОВАНИЕ</div><h1>Менеджмент</h1><section class="panel"><h2>История действий</h2><p class="muted">Последние 100 административных событий и изменений.</p>{% for log in logs %}<article class="report"><b>{{log.action}}</b> · {{log.target}}<div class="muted">{{log.actor.display_name}} · {{log.created_at}}</div></article>{% else %}<p class="muted">Записей пока нет.</p>{% endfor %}</section>{% endblock %}
+{% extends "base.html" %}{% block content %}<div class="eyebrow">ДОКУМЕНТЫ</div><h1>Устав модерации</h1><section class="panel">{% if level(user)>=2 %}<form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><textarea name="rules" rows="14">{{rules}}</textarea><button>Сохранить устав</button></form>{% else %}<p class="prose">{{rules}}</p>{% endif %}</section>{% endblock %}
+{% extends "base.html" %}{% block content %}<section class="panel narrow"><div class="eyebrow">ПЕРВЫЙ ВХОД</div><h1>Смените временный пароль</h1><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><label>Новый пароль (не менее 14 символов)</label><input type="password" name="password" minlength="14" required><button>Сохранить пароль</button></form></section>{% endblock %}
+{% extends "base.html" %}{% block content %}<div class="eyebrow">КОМАНДА</div><h1>Состав модерации</h1>{% if level(user)>=2 %}<section class="panel"><h2>Добавить участника</h2><form method="post" action="/members/create"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><label>Имя / никнейм</label><input name="display_name" required><div class="row"><div><label>Способ создания</label><select name="mode" id="mode" onchange="document.getElementById('manual').hidden=this.value==='auto'"><option value="manual">Задать логин и пароль</option><option value="auto">Сгенерировать автоматически</option></select></div><div id="manual"><label>Логин</label><input name="username"><label>Пароль (минимум 14 символов)</label><input name="password" minlength="14"></div></div><button>Создать аккаунт</button></form></section>{% endif %}<section class="panel scroll"><table><tr><th>Участник</th><th>Роль</th><th>Вступление</th><th>Выговоры</th><th>Преды</th>{% if level(user)>=3 %}<th>Управление</th>{% endif %}</tr>{% for m in members %}<tr><td>{{m.display_name}}</td><td>{{m.role}}</td><td>{{m.joined.strftime('%Y-%m-%d')}}</td><td>{{m.warnings}}</td><td>{{m.preds}}</td>{% if level(user)>=3 %}<td><details><summary>Изменить</summary><form method="post" action="/members/{{m.id}}/update"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><label>Роль</label><select name="role">{% for r in ['Модератор','Старший модератор','Глава модерации'] %}<option {% if m.role==r %}selected{% endif %}>{{r}}</option>{% endfor %}</select><label>Дата вступления</label><input name="joined" type="date" value="{{m.joined.strftime('%Y-%m-%d')}}"><label>Выговоры</label><input name="warnings" type="number" min="0" value="{{m.warnings}}"><label>Предупреждения</label><input name="preds" type="number" min="0" value="{{m.preds}}"><button>Сохранить</button></form><form method="post" action="/members/{{m.id}}/reset"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><button class="secondary">Сбросить пароль</button></form></details></td>{% endif %}</tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}{% block content %}<section class="hero"><div class="eyebrow">ВНУТРЕННИЙ ПОРТАЛ</div><h1>Модерация сервера<br>«Пропавших без вести»</h1><p>Единое пространство команды: состав, внутренний устав и отчётность.</p></section><div class="stats"><div class="panel"><b>{{member_count}}</b><span>Участников</span></div><div class="panel"><b>{{report_count}}</b><span>Отчётов</span></div><div class="panel"><b>{{user.role}}</b><span>Ваш уровень доступа</span></div></div>{% endblock %}
+{% extends "base.html" %}{% block content %}<div class="eyebrow">ОТЧЁТНОСТЬ</div><h1>Наказания</h1><section class="panel"><h2>Новый отчёт</h2><form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}"><label>Кому выдано наказание</label><input name="target" required><label>Тип наказания</label><select name="punishment"><option>Предупреждение</option><option>Выговор</option><option>Мут</option><option>Бан</option><option>Другое</option></select><label>Дата</label><input type="date" name="report_date" required><label>Причина и подробности</label><textarea name="reason" rows="3" required></textarea><button>Отправить отчёт</button></form></section><section class="panel"><h2>Отправленные отчёты</h2>{% for r in rows %}<article class="report"><b>{{r.target}} · {{r.punishment}}</b><p>{{r.reason}}</p><small>{{r.report_date}} · {{r.author.display_name}}</small></article>{% else %}<p class="muted">Отчётов пока нет.</p>{% endfor %}</section>{% endblock %}
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Модерация — Пропавших без вести</title><link rel="stylesheet" href="{{url_for('static',filename='style.css')}}"></head><body>
+{% if user %}<header><a class="logo" href="/">ПБВ <small>МОДЕРАЦИЯ</small></a><button class="hamb" type="button" onclick="document.body.classList.toggle('menu-open')">☰</button><span class="who">{{user.display_name}} · {{user.role}}</span></header><div class="shade" onclick="document.body.classList.remove('menu-open')"></div><aside><div class="side-title">Навигация</div><a href="/">Главная</a><a href="/team">Состав</a><a href="/rules">Устав</a><a href="/reports">Наказания</a>{% if level(user)>=2 %}<a href="/management">Менеджмент</a>{% endif %}<form method="post" action="/logout">{{csrf_token() and ''}}<input type="hidden" name="csrf_token" value="{{csrf_token()}}"><button class="secondary">Выйти</button></form></aside>{% endif %}
+<main>{% with messages=get_flashed_messages() %}{% for m in messages %}<div class="flash">{{m}}</div>{% endfor %}{% endwith %}
+{% if new_credentials %}<div class="notice"><b>Временные данные аккаунта — сохраните сейчас:</b><br>Логин: <code>{{new_credentials.username}}</code><br>Пароль: <code>{{new_credentials.password}}</code><p>Передайте их участнику по безопасному каналу. После первого входа он обязан сменить пароль. Повторно эти данные не показываются.</p></div>{% endif %}
+{% block content %}{% endblock %}</main></body></html>
+import os
+import secrets
+import string
+from datetime import date, datetime, timezone
+from functools import wraps
+
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
+
+app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-this-key")
+database_url = os.environ.get("DATABASE_URL", "sqlite:///moderation.db")
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("COOKIE_SECURE", "0") == "1"
+app.config["WTF_CSRF_TIME_LIMIT"] = 3600
+
+db = SQLAlchemy(app)
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
+)
+
+ROLES = {"Модератор": 1, "Старший модератор": 2, "Глава модерации": 3}
+
+class Member(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    display_name = db.Column(db.String(100), nullable=False)
+    role = db.Column(db.String(40), nullable=False, default="Модератор")
+    joined = db.Column(db.Date, nullable=False, default=date.today)
+    warnings = db.Column(db.Integer, nullable=False, default=0)
+    preds = db.Column(db.Integer, nullable=False, default=0)
+    must_change_password = db.Column(db.Boolean, nullable=False, default=True)
+    active = db.Column(db.Boolean, nullable=False, default=True)
+
+    @property
+    def level(self):
+        return ROLES.get(self.role, 0)
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    target = db.Column(db.String(120), nullable=False)
+    punishment = db.Column(db.String(60), nullable=False)
+    report_date = db.Column(db.Date, nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey("member.id"), nullable=False)
+    author = db.relationship("Member", backref="reports")
+
+class Setting(db.Model):
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text, nullable=False, default="")
+
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("member.id"), nullable=False)
+    actor = db.relationship("Member")
+    action = db.Column(db.String(120), nullable=False)
+    target = db.Column(db.String(160), nullable=False, default="")
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+@app.context_processor
+def inject_helpers():
+    return {"level": lambda user: user.level if user else 0}
+
+def current_user():
+    uid = session.get("member_id")
+    return db.session.get(Member, uid) if uid else None
+
+@app.context_processor
+def inject_user():
+    return {"user": current_user(), "new_credentials": session.pop("new_credentials", None)}
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user or not user.active:
+            session.clear()
+            return redirect(url_for("login"))
+        if user.must_change_password and request.endpoint != "change_password":
+            return redirect(url_for("change_password"))
+        return fn(*args, **kwargs)
+    return wrapped
+
+def role_required(min_level):
+    def decorator(fn):
+        @wraps(fn)
+        @login_required
+        def wrapped(*args, **kwargs):
+            if current_user().level < min_level:
+                abort(403)
+            return fn(*args, **kwargs)
+        return wrapped
+    return decorator
+
+def log_action(action, target=""):
+    db.session.add(AuditLog(actor_id=current_user().id, action=action, target=target))
+
+@app.route("/login", methods=["GET", "POST"])
+@limiter.limit("8 per minute")
+def login():
+    if current_user():
+        return redirect(url_for("home"))
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        member = Member.query.filter_by(username=username, active=True).first()
+        if member and check_password_hash(member.password_hash, password):
+            session.clear()
+            session["member_id"] = member.id
+            return redirect(url_for("change_password" if member.must_change_password else "home"))
+        flash("Неверный логин или пароль.")
+    return render_template("login.html")
+
+@app.post("/logout")
+@login_required
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+@app.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    member = current_user()
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if len(password) < 14:
+            flash("Пароль должен содержать не менее 14 символов.")
+        else:
+            member.password_hash = generate_password_hash(password)
+            member.must_change_password = False
+            db.session.commit()
+            flash("Пароль изменён.")
+            return redirect(url_for("home"))
+    return render_template("change_password.html")
+
+@app.route("/")
+@login_required
+def home():
+    return render_template("home.html",
+        member_count=Member.query.filter_by(active=True).count(),
+        report_count=Report.query.count())
+
+@app.route("/team")
+@login_required
+def team():
+    members = Member.query.filter_by(active=True).order_by(Member.joined.asc()).all()
+    return render_template("team.html", members=members)
+
+def generate_credentials():
+    alphabet = string.ascii_lowercase + string.digits
+    while True:
+        username = "mod_" + "".join(secrets.choice(alphabet) for _ in range(7))
+        if not Member.query.filter_by(username=username).first():
+            break
+    password = "".join(secrets.choice(string.ascii_letters + string.digits + "!@#$%") for _ in range(20))
+    return username, password
+
+@app.post("/members/create")
+@role_required(2)
+def create_member():
+    display_name = request.form.get("display_name", "").strip()
+    mode = request.form.get("mode", "manual")
+    if not display_name:
+        flash("Укажите имя или никнейм.")
+        return redirect(url_for("team"))
+    if mode == "auto":
+        username, password = generate_credentials()
+    else:
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not username or len(password) < 14:
+            flash("Укажите логин и пароль не короче 14 символов.")
+            return redirect(url_for("team"))
+    if Member.query.filter_by(username=username).first():
+        flash("Такой логин уже существует.")
+        return redirect(url_for("team"))
+    member = Member(username=username, password_hash=generate_password_hash(password),
+                    display_name=display_name, role="Модератор", joined=date.today(),
+                    must_change_password=True)
+    db.session.add(member)
+    log_action("Создан аккаунт", username)
+    db.session.commit()
+    session["new_credentials"] = {"username": username, "password": password}
+    flash("Аккаунт создан. Передайте временные данные участнику безопасным способом.")
+    return redirect(url_for("team"))
+
+@app.post("/members/<int:member_id>/update")
+@role_required(3)
+def update_member(member_id):
+    member = db.get_or_404(Member, member_id)
+    role = request.form.get("role", member.role)
+    if role not in ROLES:
+        abort(400)
+    try:
+        joined = date.fromisoformat(request.form.get("joined", member.joined.isoformat()))
+        warnings = max(0, int(request.form.get("warnings", member.warnings)))
+        preds = max(0, int(request.form.get("preds", member.preds)))
+    except (ValueError, TypeError):
+        flash("Проверьте дату и числовые поля.")
+        return redirect(url_for("team"))
+    if member.id == current_user().id and role != "Глава модерации":
+        flash("Нельзя понизить собственную роль.")
+        return redirect(url_for("team"))
+    member.role, member.joined = role, joined
+    member.warnings, member.preds = warnings, preds
+    log_action("Изменены данные участника", member.username)
+    db.session.commit()
+    flash("Изменения сохранены.")
+    return redirect(url_for("team"))
+
+@app.post("/members/<int:member_id>/reset")
+@role_required(3)
+def reset_password(member_id):
+    member = db.get_or_404(Member, member_id)
+    password = "".join(secrets.choice(string.ascii_letters + string.digits + "!@#$%") for _ in range(20))
+    member.password_hash = generate_password_hash(password)
+    member.must_change_password = True
+    log_action("Сброшен пароль", member.username)
+    db.session.commit()
+    session["new_credentials"] = {"username": member.username, "password": password}
+    flash("Временный пароль создан.")
+    return redirect(url_for("team"))
+
+@app.route("/rules", methods=["GET", "POST"])
+@login_required
+def rules():
+    setting = db.session.get(Setting, "rules")
+    if not setting:
+        setting = Setting(key="rules", value="Устав модерации пока не заполнен.")
+        db.session.add(setting)
+        db.session.commit()
+    if request.method == "POST":
+        if current_user().level < 2:
+            abort(403)
+        setting.value = request.form.get("rules", "")
+        log_action("Изменён устав", "Устав модерации")
+        db.session.commit()
+        flash("Устав сохранён.")
+        return redirect(url_for("rules"))
+    return render_template("rules.html", rules=setting.value)
+
+@app.route("/reports", methods=["GET", "POST"])
+@login_required
+def reports():
+    if request.method == "POST":
+        try:
+            report_date = date.fromisoformat(request.form.get("report_date", ""))
+        except ValueError:
+            flash("Укажите корректную дату.")
+            return redirect(url_for("reports"))
+        target = request.form.get("target", "").strip()
+        reason = request.form.get("reason", "").strip()
+        punishment = request.form.get("punishment", "").strip()
+        if not target or not reason or not punishment:
+            flash("Заполните все поля отчёта.")
+            return redirect(url_for("reports"))
+        db.session.add(Report(target=target, punishment=punishment,
+                              report_date=report_date, reason=reason,
+                              author_id=current_user().id))
+        log_action("Создан отчёт", target)
+        db.session.commit()
+        flash("Отчёт отправлен.")
+        return redirect(url_for("reports"))
+    rows = Report.query.order_by(Report.report_date.desc(), Report.id.desc()).all()
+    return render_template("reports.html", rows=rows)
+
+@app.route("/management")
+@role_required(2)
+def management():
+    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all()
+    return render_template("management.html", logs=logs)
+
+@app.errorhandler(403)
+def forbidden(_error):
+    return render_template("message.html", message="У вас недостаточно прав для просмотра этой страницы."), 403
+
+@app.errorhandler(404)
+def not_found(_error):
+    return render_template("message.html", message="Страница не найдена."), 404
+
+def bootstrap():
+    db.create_all()
+    admin_name = os.environ.get("BOOTSTRAP_ADMIN", "").strip()
+    admin_password = os.environ.get("BOOTSTRAP_PASSWORD", "")
+    if admin_name and admin_password and not Member.query.filter_by(role="Глава модерации").first():
+        admin = Member(username=admin_name, password_hash=generate_password_hash(admin_password),
+                       display_name="Глава модерации", role="Глава модерации",
+                       joined=date.today(), must_change_password=True)
+        db.session.add(admin)
+        db.session.commit()
+
+with app.app_context():
+    bootstrap()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
